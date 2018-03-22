@@ -1,0 +1,19 @@
+﻿Build started 3/20/2018 12:43:56 AM.
+     1>Project "D:\mmitc\Programming\classENV\Projects\Assignments\ClassProject\ClassProject\ClassProject.vcxproj" on node 2 (Rebuild target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(364,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+     1>ClCompile:
+         D:\Program Files\VC\bin\CL.exe /c /ID:\mmitc\Programming\classENV\boost_1_60_0 /ID:\mmitc\Programming\classENV\ogre9src /ID:\mmitc\Programming\classENV\Build9\include /ID:\mmitc\Programming\classENV\Build9\include\OGRE /ID:\mmitc\Programming\classENV\Build9\include\OGRE\Overlay /ID:\mmitc\Programming\classENV\Build9\include\OIS /I"D:\mmitc\Programming\classENV\cegui\include\cegui-0\\" /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt BaseApplication.cpp ProjectApplication.cpp
+         ProjectApplication.cpp
+     1>d:\mmitc\programming\classenv\projects\assignments\classproject\classproject\projectapplication.cpp(24): warning C4305: 'argument' : truncation from 'double' to 'Ogre::Real'
+     1>d:\mmitc\programming\classenv\projects\assignments\classproject\classproject\projectapplication.cpp(59): warning C4305: 'argument' : truncation from 'double' to 'float'
+         BaseApplication.cpp
+         Generating Code...
+       Link:
+         D:\Program Files\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\mmitc\Programming\classENV\Build9\bin\debug\ClassProject.exe" /INCREMENTAL /NOLOGO /LIBPATH:D:\mmitc\Programming\classENV\cegui\lib\ /LIBPATH:"D:\mmitc\Programming\classENV\boost_1_60_0\lib32-msvc-12.0" /LIBPATH:D:\mmitc\Programming\classENV\Build9\lib\debug OgreMain_d.lib OgreOverlay_d.lib OIS_d.lib OgreTerrain_d.lib "CEGUIBase-0_d.lib" "CEGUIOgreRenderer-0_d.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\mmitc\Programming\classENV\Build9\bin\debug\ClassProject.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\mmitc\Programming\classENV\Build9\bin\debug\ClassProject.lib" /MACHINE:X86 Debug\BaseApplication.obj
+         Debug\ProjectApplication.obj
+         ClassProject.vcxproj -> D:\mmitc\Programming\classENV\Build9\bin\debug\ClassProject.exe
+     1>Done Building Project "D:\mmitc\Programming\classENV\Projects\Assignments\ClassProject\ClassProject\ClassProject.vcxproj" (Rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:46.46
