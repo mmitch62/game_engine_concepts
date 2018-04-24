@@ -19,6 +19,13 @@ private:
 	Ogre::SceneNode* mMainNode;
 	Ogre::SceneNode* mPlayerNode;
 	Ogre::SceneNode* mCameraNode;
+	Ogre::Entity* mPlayerEntity;
+
+	Ogre::AnimationState* mPlayerAnimation;
+
+	Ogre::Real mPlayerSpd;
+
+	bool isPlayerMoving;
 };
 
 #endif

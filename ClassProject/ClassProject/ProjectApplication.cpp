@@ -4,7 +4,10 @@
 ProjectApplication::ProjectApplication(void)
 	: mPlayerNode(0),
 	mMainNode(0),
-	mCameraNode(0)
+	mCameraNode(0),
+	mPlayerEntity(0),
+	mPlayerSpd(250),
+	mPlayerAnimation(0)
 {
 }
 
@@ -33,11 +36,11 @@ void ProjectApplication::createScene(void)
 	mCamera->setAspectRatio(Ogre::Real(vp->getActualWidth()) / Ogre::Real(vp->getActualHeight()));
 
 	//Adding the player
-	Ogre::Entity* playerEntity = mSceneMgr->createEntity("ninja.mesh");
-	playerEntity->setCastShadows(true);
+	mPlayerEntity = mSceneMgr->createEntity("ninja.mesh");
+	mPlayerEntity->setCastShadows(true);
 
 	mPlayerNode = mMainNode->createChildSceneNode("PlayerNode");
-	mPlayerNode->attachObject(playerEntity);
+	mPlayerNode->attachObject(mPlayerEntity);
 
 	//Building the ground
 	Ogre::Plane plane(Ogre::Vector3::UNIT_Y, 0);
@@ -57,84 +60,130 @@ void ProjectApplication::createScene(void)
 
 	//Setting the light
 	mSceneMgr->setAmbientLight(Ogre::ColourValue(0.4, 0.4, 0.4));
+
+	//Setup the animation for the ninja
+	mPlayerAnimation = mPlayerEntity->getAnimationState("Idle3");
+	mPlayerAnimation->setLoop(true);
+	mPlayerAnimation->setEnabled(true);
 }
 
 //--------------------------------------------------------------------------
 bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 {
-	bool ret = BaseApplication::frameRenderingQueued(fe);
+	//bool ret = BaseApplication::frameRenderingQueued(fe);
 
 	if (!processUnbufferedInput(fe))
 		return false;
 
-	return ret;
+	if (mWindow->isClosed())
+		return false;
+
+	if (mShutDown)
+		return false;
+
+	mKeyboard->capture();
+	mMouse->capture();
+
+	mTrayMgr->frameRenderingQueued(fe);
+
+	if (isPlayerMoving)
+	{
+		mPlayerAnimation = mPlayerEntity->getAnimationState("Walk");
+		mPlayerAnimation->setLoop(true);
+		mPlayerAnimation->setEnabled(true);
+	}
+	else {
+		mPlayerAnimation = mPlayerEntity->getAnimationState("Idle3");
+		mPlayerAnimation->setLoop(true);
+		mPlayerAnimation->setEnabled(true);
+	}
+
+	mPlayerAnimation->addTime(fe.timeSinceLastFrame);
+
+	return true;
 }
 
 //--------------------------------------------------------------------------
 bool ProjectApplication::processUnbufferedInput(const Ogre::FrameEvent& fe)
 {
+	isPlayerMoving = false;
 	//Adding move functionality to player
-	static Ogre::Real moveSpd = 250;
 	Ogre::Vector3 dirVec = Ogre::Vector3::ZERO;
 
-	if (mKeyboard->isKeyDown(OIS::KC_I))
+	if (mKeyboard->isKeyDown(OIS::KC_W))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(0), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= moveSpd;
+		dirVec.z -= mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_K))
+	if (mKeyboard->isKeyDown(OIS::KC_S))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(180), Ogre::Vector3::UNIT_Y));
-		dirVec.z += moveSpd;
+		dirVec.z += mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_J))
+	if (mKeyboard->isKeyDown(OIS::KC_A))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(90), Ogre::Vector3::UNIT_Y));
-		dirVec.x -= moveSpd;
+		dirVec.x -= mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_L))
+	if (mKeyboard->isKeyDown(OIS::KC_D))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(270), Ogre::Vector3::UNIT_Y));
-		dirVec.x += moveSpd;
+		dirVec.x += mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_I) && mKeyboard->isKeyDown(OIS::KC_J))
+	if (mKeyboard->isKeyDown(OIS::KC_W) && mKeyboard->isKeyDown(OIS::KC_A))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(45), Ogre::Vector3::UNIT_Y));
-		dirVec.z += .5*moveSpd;
-		dirVec.x += .5*moveSpd;
+		dirVec.z += .5*mPlayerSpd;
+		dirVec.x += .5*mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_I) && mKeyboard->isKeyDown(OIS::KC_L))
+	if (mKeyboard->isKeyDown(OIS::KC_W) && mKeyboard->isKeyDown(OIS::KC_D))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(315), Ogre::Vector3::UNIT_Y));
-		dirVec.z += .5*moveSpd;
-		dirVec.x -= .5*moveSpd;
+		dirVec.z += .5*mPlayerSpd;
+		dirVec.x -= .5*mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_K) && mKeyboard->isKeyDown(OIS::KC_J))
+	if (mKeyboard->isKeyDown(OIS::KC_S) && mKeyboard->isKeyDown(OIS::KC_A))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(135), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= .5*moveSpd;
-		dirVec.x += .5*moveSpd;
+		dirVec.z -= .5*mPlayerSpd;
+		dirVec.x += .5*mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_K) && mKeyboard->isKeyDown(OIS::KC_L))
+	if (mKeyboard->isKeyDown(OIS::KC_S) && mKeyboard->isKeyDown(OIS::KC_D))
 	{
 		mSceneMgr->getSceneNode("PlayerNode")->setOrientation(
 			Ogre::Quaternion(Ogre::Degree(225), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= .5*moveSpd;
-		dirVec.x -= .5*moveSpd;
+		dirVec.z -= .5*mPlayerSpd;
+		dirVec.x -= .5*mPlayerSpd;
+
+		isPlayerMoving = true;
 	}
 
 	mSceneMgr->getSceneNode("MainNode")->translate(
