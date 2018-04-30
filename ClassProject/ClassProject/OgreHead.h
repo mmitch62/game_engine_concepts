@@ -19,30 +19,23 @@ struct OgreHeadStruct {
 	Ogre::Vector3 destination;
 	Ogre::Vector3 direction;
 	Ogre::Real distance;
-	std::vector<Ogre::Vector3>::iterator nextSpot;
 	btRigidBody * ogreBody;
 	Ogre::Real shootTimer;
 
 	//constructors
-	OgreHeadStruct() {
+	OgreHeadStruct() 
+	{
 		destination = Ogre::Vector3::ZERO;
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;
-		nextSpot = moveList.begin();
-		shootTimer = 0;
 	}
 
-	OgreHeadStruct(Ogre::SceneNode* node, btRigidBody *body) {
+	OgreHeadStruct(Ogre::SceneNode* node, btRigidBody *body) 
+	{
 		ogreNode = node;
 		destination = Ogre::Vector3::ZERO;
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;
-		nextSpot = moveList.begin();
 		ogreBody = body;
-		shootTimer = 0;
-	}
-
-	void increm() {
-		nextSpot++;
 	}
 };
