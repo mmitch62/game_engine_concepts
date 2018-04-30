@@ -29,5 +29,8 @@
     <ClInclude Include="ProjectApplication.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="OgreHead.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
