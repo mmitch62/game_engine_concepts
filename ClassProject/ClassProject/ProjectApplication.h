@@ -53,6 +53,8 @@ public:
 protected:
 	virtual void createScene(void);
 	virtual bool frameRenderingQueued(const Ogre::FrameEvent& fe);
+	virtual bool keyPressed(const OIS::KeyEvent& ke);
+	virtual bool keyReleased(const OIS::KeyEvent& ke);
 	void CreateOgre(const btVector3 &Position);
 	bool frameStarted(const Ogre::FrameEvent &evt);
 	//Ogre::ManualObject *createCubeMesh(Ogre::String name, Ogre::String matName);
@@ -65,7 +67,7 @@ private:
 	double timer, respawnTime;
 	int numOgres; int maxOgres;
 	int ninjaHealth = 10;
-	
+	Ogre::AxisAlignedBox ninBox;
 
 	Ogre::SceneNode* mMainNode;
 	Ogre::SceneNode* mPlayerNode;

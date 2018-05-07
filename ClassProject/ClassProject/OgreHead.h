@@ -16,6 +16,7 @@ static std::vector<Ogre::Vector3> moveList;
 
 struct OgreHeadStruct {
 	Ogre::SceneNode* ogreNode;
+	Ogre::Entity* ogreEntity;
 	Ogre::Vector3 destination;
 	Ogre::Vector3 direction;
 	Ogre::Real distance;
@@ -30,9 +31,10 @@ struct OgreHeadStruct {
 		distance = 0;
 	}
 
-	OgreHeadStruct(Ogre::SceneNode* node, btRigidBody *body) 
+	OgreHeadStruct(Ogre::SceneNode* node, Ogre::Entity* entity, btRigidBody *body)
 	{
 		ogreNode = node;
+		ogreEntity = entity;
 		destination = Ogre::Vector3::ZERO;
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;

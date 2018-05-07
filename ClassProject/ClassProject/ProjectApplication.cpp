@@ -1,4 +1,7 @@
 #include "ProjectApplication.h"
+#include <stdio.h>      
+#include <stdlib.h>     
+#include <time.h>       
 
 //--------------------------------------------------------------------------
 ProjectApplication::ProjectApplication(void)
@@ -46,6 +49,10 @@ void ProjectApplication::createBulletSim(void) {
 //--------------------------------------------------------------------------
 void ProjectApplication::createScene(void)
 {
+	srand(time(NULL));
+
+	
+
 	//CEGUI setup
 	mRenderer = &CEGUI::OgreRenderer::bootstrapSystem();
 
@@ -72,7 +79,7 @@ void ProjectApplication::createScene(void)
 	createBulletSim();
 
 	mMainNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("MainNode");
-
+	
 	//Create a camera
 	mCamera->setPosition(200, 500, 400);
 	mCamera->lookAt(mMainNode->getPosition());
@@ -93,6 +100,10 @@ void ProjectApplication::createScene(void)
 
 	mPlayerNode = mMainNode->createChildSceneNode("PlayerNode");
 	mPlayerNode->attachObject(mPlayerEntity);
+
+	ninBox = mPlayerEntity->getWorldBoundingBox(true);
+	ninBox.transformAffine(mMainNode->_getFullTransform());
+
 	//Building the ground
 	Ogre::Plane plane(Ogre::Vector3::UNIT_Y, 0);
 	Ogre::MeshManager::getSingleton().createPlane(
@@ -121,7 +132,7 @@ void ProjectApplication::createScene(void)
 	void ProjectApplication::CreateOgre(const btVector3 &Position)
 	{
 		Ogre::Vector3 tempPoint = Ogre::Vector3(mSceneMgr->getSceneNode("PlayerNode")->getPosition());
-		Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 50, tempPoint.z);
+		Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 200, tempPoint.z);
 		// empty ogre vectors for the cubes size and position
 		Ogre::Vector3 size = Ogre::Vector3::ZERO;
 		Ogre::Vector3 pos = Ogre::Vector3::ZERO;
@@ -139,9 +150,13 @@ void ProjectApplication::createScene(void)
 		ptrToOgreObject->sceneNodeObject->setPosition(pos);
 		//the scale will always be the same
 		ptrToOgreObject->sceneNodeObject->scale(1, 1, 1);
-		Ogre::AxisAlignedBox boundingB = ptrToOgreObject->entityObject->getBoundingBox();
+		Ogre::AxisAlignedBox boundingB = ptrToOgreObject->entityObject->getWorldBoundingBox(true);
 		boundingB.scale(Ogre::Vector3(1, 1, 1));
+		
+		
+
 		size = boundingB.getSize()*0.95f;
+		boundingB.transformAffine(ptrToOgreObject->sceneNodeObject->_getFullTransform());
 		btTransform Transform;
 		Transform.setIdentity();
 		Transform.setOrigin(Position);
@@ -165,7 +180,7 @@ void ProjectApplication::createScene(void)
 	
 		//add ogreHead to the list
 		
-		OgreHeadStruct newHead = OgreHeadStruct(ptrToOgreObject->sceneNodeObject, ptrToOgreObject->btRigidBodyObject);
+		OgreHeadStruct newHead = OgreHeadStruct(ptrToOgreObject->sceneNodeObject,ptrToOgreObject->entityObject, ptrToOgreObject->btRigidBodyObject);
 		newHead.destination = ninjaPoint;
 		newHead.direction = ninjaPoint;
 		ogreHeads.emplace_back(newHead);
@@ -212,10 +227,39 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		mPlayerAnimation->setEnabled(true);
 	}
 
+	if (mKeyboard->isKeyDown(OIS::KC_H))
+	{
+		mPlayerAnimation->setLoop(false);
+		mPlayerAnimation->setEnabled(false);
+		mPlayerAnimation = mPlayerEntity->getAnimationState("Attack1");
+		mPlayerAnimation->setLoop(false);
+		mPlayerAnimation->setEnabled(true);
+	}
+
+	
+
 	mPlayerAnimation->addTime(fe.timeSinceLastFrame);
 	if (timer >= respawnTime && numOgres < maxOgres) 
 	{
-		CreateOgre(btVector3(mMainNode->getPosition().x, mMainNode->getPosition().y, mMainNode->getPosition().z)); //should start in top right corner		
+		int corner = rand() % 4 + 1;
+		switch (corner) 
+		{
+		case 1:
+			CreateOgre(btVector3(-650, 200, -650)); //should start in top left corner		
+			break;
+
+		case 2:
+			CreateOgre(btVector3(650, 200, -650)); //should start in top right corner		
+			break;
+
+		case 3:
+			CreateOgre(btVector3(-650, 200, 650)); //should start in bottom left corner		
+			break;
+		case 4:
+			CreateOgre(btVector3(650, 200, 650)); //should start in bottom right corner		
+			break;
+
+		}
 		timer = 0; //reset timer to zero	
 	}
 
@@ -235,10 +279,22 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		btTransform rigidTrans;
 		iterator->ogreBody->getMotionState()->getWorldTransform(rigidTrans);
 		//reset the rigidbody's place every frame
-		btVector3 rigidLoc = btVector3(locationNode->getPosition().x, 50, locationNode->getPosition().z);
+		btVector3 rigidLoc = btVector3(locationNode->getPosition().x, 200, locationNode->getPosition().z);
 		rigidTrans.setOrigin(rigidLoc);
 		iterator->ogreBody->setWorldTransform(rigidTrans);
+		if (mPlayerEntity->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) /*&& (R_Attack == true)*/) {
+			--ninjaHealth;
+		}
 		
+	}
+
+	if (mPlayerAnimation->hasEnded()) {
+		mPlayerAnimation->setTimePosition(0);
+		mPlayerAnimation->setLoop(false);
+		mPlayerAnimation->setEnabled(false);
+		mPlayerAnimation = mPlayerEntity->getAnimationState("Idle1");
+		mPlayerAnimation->setLoop(true);
+		mPlayerAnimation->setEnabled(true);
 	}
 	
 	//update the healthWindow if the Ninja's health changes
@@ -332,6 +388,46 @@ bool ProjectApplication::processUnbufferedInput(const Ogre::FrameEvent& fe)
 	mSceneMgr->getSceneNode("MainNode")->translate(
 		dirVec * fe.timeSinceLastFrame, Ogre::Node::TS_LOCAL);
 
+	return true;
+}
+
+bool ProjectApplication::keyPressed(const OIS::KeyEvent& ke)
+{
+	switch (ke.key)
+	{
+	case OIS::KC_UP:
+	case OIS::KC_W:
+		
+		break;
+
+	case OIS::KC_DOWN:
+	case OIS::KC_S:
+		
+		break;
+
+	case OIS::KC_LEFT:
+	case OIS::KC_A:
+		
+		break;
+
+	case OIS::KC_H:
+		mPlayerAnimation->setTimePosition(0);
+		mPlayerAnimation->setLoop(false);
+		mPlayerAnimation->setEnabled(false);
+		mPlayerAnimation = mPlayerEntity->getAnimationState("Idle2");
+		mPlayerAnimation->setLoop(true);
+		mPlayerAnimation->setEnabled(true);
+		break;
+		break;
+
+	default:
+		break;
+	}
+	return true;
+}
+
+bool ProjectApplication::keyReleased(const OIS::KeyEvent& ke)
+{
 	return true;
 }
 
