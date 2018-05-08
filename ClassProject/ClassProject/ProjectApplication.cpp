@@ -71,10 +71,30 @@ void ProjectApplication::createScene(void)
 	CEGUI::System::getSingleton().getDefaultGUIContext().setRootWindow(sheet);
 
 	healthWindow = wmgr.createWindow("TaharezLook/StaticText", "CEGUIDemo/Title");
+	scoreWindow = wmgr.createWindow("TaharezLook/StaticText", "CEGUIDemo/Title");
+	enemiesWindow = wmgr.createWindow("TaharezLook/StaticText", "CEGUIDemo/Title");
+	waveWindow = wmgr.createWindow("TaharezLook/StaticText", "CEGUIDemo/Title");
+
 	sheet->addChild(healthWindow);
+	sheet->addChild(scoreWindow);
+	sheet->addChild(enemiesWindow);
+	sheet->addChild(waveWindow);
+
 	healthWindow->setText("Health: " + std::to_string(ninjaHealth));
 	healthWindow->setPosition(CEGUI::UVector2(CEGUI::UDim(0.88f, 0.0f), CEGUI::UDim(0.05f, 0.0f)));
 	healthWindow->setSize(CEGUI::USize(CEGUI::UDim(0.1f, 0.0f), CEGUI::UDim(0.1f, 0.0f)));
+
+	scoreWindow->setText("Score: " + std::to_string(score));
+	scoreWindow->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0f, 0.0f), CEGUI::UDim(0.05f, 0.0f)));
+	scoreWindow->setSize(CEGUI::USize(CEGUI::UDim(0.1f, 0.0f), CEGUI::UDim(0.1f, 0.0f)));
+
+	enemiesWindow->setText("Enemies Remaining: " + std::to_string(enemiesLeft));
+	enemiesWindow->setPosition(CEGUI::UVector2(CEGUI::UDim(0.45f, 0.0f), CEGUI::UDim(0.05f, 0.0f)));
+	enemiesWindow->setSize(CEGUI::USize(CEGUI::UDim(0.2f, 0.0f), CEGUI::UDim(0.1f, 0.0f)));
+
+	waveWindow->setText("Wave: " + std::to_string(waveNum));
+	waveWindow->setPosition(CEGUI::UVector2(CEGUI::UDim(0.35f, 0.0f), CEGUI::UDim(0.05f, 0.0f)));
+	waveWindow->setSize(CEGUI::USize(CEGUI::UDim(0.1f, 0.0f), CEGUI::UDim(0.1f, 0.0f)));
 
 	createBulletSim();
 
@@ -299,9 +319,12 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 	
 	//update the healthWindow if the Ninja's health changes
 	healthWindow->setText("Health: " + std::to_string(ninjaHealth));
-	return ret;
-	}		 
+	scoreWindow->setText("Score: " + std::to_string(score));
+	enemiesWindow->setText("Enemies Remaining: " + std::to_string(numOgres));
+	waveWindow->setText("Wave: " + std::to_string(waveNum));
 
+	return ret;
+	}	
 //--------------------------------------------------------------------------
 bool ProjectApplication::processUnbufferedInput(const Ogre::FrameEvent& fe)
 {

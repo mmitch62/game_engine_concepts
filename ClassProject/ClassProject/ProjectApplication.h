@@ -57,7 +57,6 @@ protected:
 	virtual bool keyReleased(const OIS::KeyEvent& ke);
 	void CreateOgre(const btVector3 &Position);
 	bool frameStarted(const Ogre::FrameEvent &evt);
-	//Ogre::ManualObject *createCubeMesh(Ogre::String name, Ogre::String matName);
 	CEGUI::OgreRenderer* mRenderer;
 	bool quitGame(const CEGUI::EventArgs &e);
 private:
@@ -67,6 +66,9 @@ private:
 	double timer, respawnTime;
 	int numOgres; int maxOgres;
 	int ninjaHealth = 10;
+	int score = 0;
+	int waveNum = 1;
+	int enemiesLeft = 0;
 	Ogre::AxisAlignedBox ninBox;
 
 	Ogre::SceneNode* mMainNode;
@@ -93,6 +95,10 @@ private:
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
 
 	CEGUI::Window *healthWindow;
+	CEGUI::Window *scoreWindow;
+	CEGUI::Window *enemiesWindow;
+
+	CEGUI::Window *waveWindow;
 
 	struct ogreObject 
 	{
