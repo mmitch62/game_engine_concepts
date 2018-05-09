@@ -63,7 +63,8 @@ private:
 	void createBulletSim(void);
 	bool processUnbufferedInput(const Ogre::FrameEvent& fe);
 	bool isPlayerMoving;
-	double timer, respawnTime;
+	bool attacking;
+	double timer,attackTimer,attackTime,cooldownTime, damageCooldownTime, damageCooldownTimerNinja, respawnTime;
 	int numOgres; int maxOgres;
 	int ninjaHealth = 10;
 	int score = 0;
@@ -112,13 +113,17 @@ private:
 	    Ogre::Real timer = 0;
 	    bool canDelete = false;
 	    OgreHeadStruct headStruct;
-		int health = 3;
+		int health = 1;
 
 };
 	ogreObject* getOgreObject(const btCollisionObject * obj);
 	ogreObject * ptrToOgreObject; // pointer to an ogre Object struct
 	std::vector<ogreObject *> ptrToOgreObjects; // vector of pointers to actual ogreObject structs
 	ogreObject* ninjaObject;
+	void checkCollisions();
+	void checkDeletions();
+	void removeDynamicOgreObject(ogreObject * ptrToOgreObject, std::vector<ogreObject *> &ptrToOgreObjects);
+	void eraseObject(ogreObject * object);
 	       
 };
 #endif

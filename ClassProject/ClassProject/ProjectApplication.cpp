@@ -16,6 +16,11 @@ ProjectApplication::ProjectApplication(void)
 	mRotate(.8),
 	mRenderer(0),
 	timer(4.5f), 
+	attackTimer(0.0f),
+	attackTime(1.0f),
+	cooldownTime(2.0f),
+	damageCooldownTime(0.5f), 
+	damageCooldownTimerNinja(0.0f), 
 	respawnTime(5),
 	numOgres(0),
 	ogreMove(0.5f), 
@@ -151,6 +156,7 @@ void ProjectApplication::createScene(void)
 	
 	void ProjectApplication::CreateOgre(const btVector3 &Position)
 	{
+		
 		Ogre::Vector3 tempPoint = Ogre::Vector3(mSceneMgr->getSceneNode("PlayerNode")->getPosition());
 		Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 200, tempPoint.z);
 		// empty ogre vectors for the cubes size and position
@@ -217,6 +223,7 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 {
 	bool ret = BaseApplication::frameRenderingQueued(fe);
 	//Increment timer 
+	
 	timer += fe.timeSinceLastFrame;
 	Ogre::Vector3 tempPoint = Ogre::Vector3(mPlayerEntity->getWorldBoundingBox().getCenter().x,0, mPlayerEntity->getWorldBoundingBox().getCenter().z);
 	Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 50, tempPoint.z);
@@ -247,16 +254,32 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		mPlayerAnimation->setEnabled(true);
 	}
 
-	if (mKeyboard->isKeyDown(OIS::KC_H))
+	if (mKeyboard->isKeyDown(OIS::KC_H) && !attacking && attackTimer == 0)
 	{
+		attacking = true;
+	}
+
+	if (attacking)
+	{
+		attackTimer += fe.timeSinceLastFrame;
 		mPlayerAnimation->setLoop(false);
 		mPlayerAnimation->setEnabled(false);
 		mPlayerAnimation = mPlayerEntity->getAnimationState("Attack1");
 		mPlayerAnimation->setLoop(false);
 		mPlayerAnimation->setEnabled(true);
-	}
 
+	}
 	
+	if (attackTimer >= attackTime)
+	{
+		attacking = false;
+		attackTimer += fe.timeSinceLastFrame;
+		if (attackTimer >= cooldownTime)
+		{
+			attackTimer = 0;
+		}
+
+	}
 
 	mPlayerAnimation->addTime(fe.timeSinceLastFrame);
 	if (timer >= respawnTime && numOgres < maxOgres) 
@@ -302,8 +325,12 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		btVector3 rigidLoc = btVector3(locationNode->getPosition().x, 200, locationNode->getPosition().z);
 		rigidTrans.setOrigin(rigidLoc);
 		iterator->ogreBody->setWorldTransform(rigidTrans);
-		if (mPlayerEntity->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) /*&& (R_Attack == true)*/) {
+		if (mPlayerEntity->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (!attacking)) {
 			--ninjaHealth;
+		}
+
+		if (mPlayerEntity->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (attacking)) {
+			iterator->ogreNode->removeAndDestroyAllChildren();
 		}
 		
 	}
@@ -413,6 +440,124 @@ bool ProjectApplication::processUnbufferedInput(const Ogre::FrameEvent& fe)
 
 	return true;
 }
+void ProjectApplication::checkCollisions() {
+	int TotalManifolds = dynamicsWorld->getDispatcher()->getNumManifolds();
+
+	for (int i = 0; i < TotalManifolds; i++) {
+		btPersistentManifold* Manifold = dynamicsWorld->getDispatcher()->getManifoldByIndexInternal(i);
+		const btCollisionObject* object1 = Manifold->getBody0();
+		const btCollisionObject* object2 = Manifold->getBody1();
+
+		ogreObject *ogOb1 = new ogreObject;
+		ogOb1 = ((ogreObject*)object1->getUserPointer());
+		ogreObject *ogOb2 = new ogreObject;
+		ogOb2 = ((ogreObject*)object2->getUserPointer());
+
+		std::string type1 = ogOb1->objectType;
+		std::string type2 = ogOb2->objectType;
+
+		
+		if ((type1 == "Ogre") && (type2 == "Sphere")) {
+			//delete the sphere
+			ogOb2->canDelete = true;
+			//update score on a hit
+			score = score + 2;
+			//update the ogre's health 
+			ogOb1->health = ogOb1->health - 1;
+			//check if the ogreHead is at 0 health now and if so delete it
+			if (ogOb1->health <= 0) {
+				ogOb1->canDelete = true;
+				score = score + 5;
+				numOgres--;
+			}
+		}
+		
+	}
+
+
+
+
+	// Game over
+	//if (playing == false) {
+
+	//	// Record high score
+	//	if (gameTimer > highScore)
+	//		highScore = gameTimer;
+
+	//	// Update windows
+	//	bestTime->setText("Best Time : " + std::to_string(highScore));
+	//	startQuit->setText("Your Final " + currentTime->getText() + "\nBest Time : "
+	//		+ std::to_string(highScore) + "\n\nPlay: (Enter)\nQuit Game: (Esc)");
+	//	startQuit->show();
+
+	//	// Reset game timers
+	//	gameTimer = 0;
+	//	collisionTimer = 0;
+
+	//	// Put player back into orginal position
+	//	btTransform Transform;
+	//	Transform.setIdentity();
+	//	Transform.setOrigin(btVector3(0, 120, 0));
+	//	player->body->setWorldTransform(Transform);
+	//}
+}
+
+void ProjectApplication::eraseObject(ogreObject* object) {
+	if (object->sceneNodeObject != NULL) {
+		// delete the ogre aspect of the object
+		// detach the entity from the parent sceneNode, destroy the entity, destroy the sceneNode, and set the sceneNode to NULL
+		object->sceneNodeObject->detachObject(object->entityObject);
+		mSceneMgr->destroyEntity(object->entityObject);
+		mSceneMgr->destroySceneNode(object->sceneNodeObject);
+		object->sceneNodeObject = NULL;
+
+		// delete the bullet aspect of the object, ours should always have motion state
+		if (object->btRigidBodyObject && object->btRigidBodyObject->getMotionState())
+			delete object->btRigidBodyObject->getMotionState();
+
+		delete object->btRigidBodyObject->getCollisionShape();
+
+		dynamicsWorld->removeCollisionObject(object->btRigidBodyObject);
+
+		object->btRigidBodyObject = NULL;
+
+		for (int i = 0; i < ogreHeads.size(); ++i) {
+			if (object->headStruct.ogreNode == ogreHeads[i].ogreNode)
+				ogreHeads.erase(ogreHeads.begin() + i);
+		}
+
+		removeDynamicOgreObject(object, ptrToOgreObjects);
+	}
+}
+
+void ProjectApplication::removeDynamicOgreObject(ogreObject * ptrToOgreObject, std::vector<ogreObject *> &ptrToOgreObjects)
+{
+	// only iterate through the vector if it is not empty, it should NOT be empty
+	if (!ptrToOgreObjects.empty())
+		// an iterator returned from an erase is a valid iterator to the next element in the vector
+		for (std::vector<ogreObject *>::iterator itr = ptrToOgreObjects.begin(); itr != ptrToOgreObjects.end(); ++itr) {
+			// find the match, it must be in the vector because the object exists
+			if (*itr == ptrToOgreObject) {
+				// delete that dynamic ogreObject
+				delete *itr;
+				// set the pointer to that ogreObject to NUll
+				*itr = NULL;
+				// and then delete that pointer out of the vector
+				ptrToOgreObjects.erase(itr);
+				// no need to continue iterating and the iterator just became invalid
+				break;
+			}
+		}
+}
+
+void ProjectApplication::checkDeletions() {
+	for (int i = 0; i < ptrToOgreObjects.size(); i++) {
+		if (ptrToOgreObjects[i]->canDelete == true)
+			eraseObject(ptrToOgreObjects[i]);
+		
+	}
+}
+
 
 bool ProjectApplication::keyPressed(const OIS::KeyEvent& ke)
 {
@@ -434,12 +579,12 @@ bool ProjectApplication::keyPressed(const OIS::KeyEvent& ke)
 		break;
 
 	case OIS::KC_H:
-		mPlayerAnimation->setTimePosition(0);
-		mPlayerAnimation->setLoop(false);
-		mPlayerAnimation->setEnabled(false);
-		mPlayerAnimation = mPlayerEntity->getAnimationState("Idle2");
-		mPlayerAnimation->setLoop(true);
-		mPlayerAnimation->setEnabled(true);
+		//mPlayerAnimation->setTimePosition(0);
+		//mPlayerAnimation->setLoop(false);
+		//mPlayerAnimation->setEnabled(false);
+		//mPlayerAnimation = mPlayerEntity->getAnimationState("Idle2");
+		//mPlayerAnimation->setLoop(true);
+		//mPlayerAnimation->setEnabled(true);
 		break;
 		break;
 
@@ -469,32 +614,7 @@ ProjectApplication::ogreObject* ProjectApplication::getOgreObject(const btCollis
 	return ret;
 	
 }
-//
-//
-//void ProjectApplication::checkCollisions()
-//{
-//
-//	int TotalManifolds = dynamicsWorld->getDispatcher()->getNumManifolds();
-//
-//	for (int i = 0; i < TotalManifolds; i++)
-//	{
-//
-//		btPersistentManifold* Manifold = dynamicsWorld->getDispatcher()->getManifoldByIndexInternal(i);
-//
-//		const btCollisionObject* object1 = Manifold->getBody0();
-//		const btCollisionObject* object2 = Manifold->getBody1();
-//
-//		ogreObject *ogOb1 = new ogreObject;
-//		ogOb1 = ((ogreObject*)object1->getUserPointer());
-//
-//		ogreObject *ogOb2 = new ogreObject;
-//		ogOb2 = ((ogreObject*)object2->getUserPointer());
-//
-//		std::string type1 = ogOb1->objectType;
-//		std::string type2 = ogOb2->objectType;
-//
-//	}
-//}
+
 
 bool ProjectApplication::frameStarted(const Ogre::FrameEvent &evt)			
 {
@@ -504,6 +624,9 @@ bool ProjectApplication::frameStarted(const Ogre::FrameEvent &evt)
 			        
 	dynamicsWorld->stepSimulation(evt.timeSinceLastFrame);
 	
+	//run collision detection functions every frame
+	checkCollisions();
+	checkDeletions();
 	return true;
 			
 }

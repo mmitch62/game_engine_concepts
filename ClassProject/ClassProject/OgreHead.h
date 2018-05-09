@@ -21,14 +21,14 @@ struct OgreHeadStruct {
 	Ogre::Vector3 direction;
 	Ogre::Real distance;
 	btRigidBody * ogreBody;
-	Ogre::Real shootTimer;
-
+	double damageCooldownTimerOgre;
 	//constructors
 	OgreHeadStruct() 
 	{
 		destination = Ogre::Vector3::ZERO;
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;
+		damageCooldownTimerOgre = 0.0f;
 	}
 
 	OgreHeadStruct(Ogre::SceneNode* node, Ogre::Entity* entity, btRigidBody *body)
@@ -39,5 +39,6 @@ struct OgreHeadStruct {
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;
 		ogreBody = body;
+		damageCooldownTimerOgre = 0.0f;
 	}
 };
