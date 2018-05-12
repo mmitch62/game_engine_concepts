@@ -12,8 +12,6 @@
 #include <vector>
 //this struct is used to hold info about the ogre heads
 
-static std::vector<Ogre::Vector3> moveList;
-
 struct OgreHeadStruct {
 	Ogre::SceneNode* ogreNode;
 	Ogre::Entity* ogreEntity;
@@ -21,6 +19,8 @@ struct OgreHeadStruct {
 	Ogre::Vector3 direction;
 	Ogre::Real distance;
 	btRigidBody * ogreBody;
+	bool isActive;
+
 	double damageCooldownTimerOgre;
 	//constructors
 	OgreHeadStruct() 
@@ -29,16 +29,23 @@ struct OgreHeadStruct {
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;
 		damageCooldownTimerOgre = 0.0f;
+		isActive = true;
+
 	}
 
 	OgreHeadStruct(Ogre::SceneNode* node, Ogre::Entity* entity, btRigidBody *body)
 	{
 		ogreNode = node;
 		ogreEntity = entity;
+		isActive = true;
 		destination = Ogre::Vector3::ZERO;
 		direction = Ogre::Vector3::ZERO;
 		distance = 0;
 		ogreBody = body;
 		damageCooldownTimerOgre = 0.0f;
+		
+
 	}
+
+
 };

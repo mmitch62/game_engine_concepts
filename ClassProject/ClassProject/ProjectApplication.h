@@ -51,7 +51,12 @@ public:
 	virtual ~ProjectApplication(void);
 
 protected:
+	void loadNinjaAndCamera(const btVector3 &Position, std::string name);
+	void NewWave();
+	void TakeDamage();
 	virtual void createScene(void);
+	virtual void createFrameListener();
+	virtual bool frameEnded(const Ogre::FrameEvent &evt);
 	virtual bool frameRenderingQueued(const Ogre::FrameEvent& fe);
 	virtual bool keyPressed(const OIS::KeyEvent& ke);
 	virtual bool keyReleased(const OIS::KeyEvent& ke);
@@ -64,11 +69,17 @@ private:
 	bool processUnbufferedInput(const Ogre::FrameEvent& fe);
 	bool isPlayerMoving;
 	bool attacking;
+	bool spawning;
+	bool isTakingDamage;
+	bool newWaveAvailable;
+	bool isNinja(std::string name);
+	bool isOgre(std::string name);
 	double timer,attackTimer,attackTime,cooldownTime, damageCooldownTime, damageCooldownTimerNinja, respawnTime;
 	int numOgres; int maxOgres;
+	int roundOgreCount;
 	int ninjaHealth = 10;
 	int score = 0;
-	int waveNum = 1;
+	int waveNum = 0;
 	int enemiesLeft = 0;
 	Ogre::AxisAlignedBox ninBox;
 
@@ -84,7 +95,7 @@ private:
 	Ogre::Real mMove;
 	Ogre::Vector3 mDirection;
 	//timers and variables to control how many enemies there are
-	std::vector<OgreHeadStruct> ogreHeads;
+	
 
 	OgreBites::Label* mInfoLabel;
 	btDefaultCollisionConfiguration* collisionConfiguration;
@@ -94,15 +105,17 @@ private:
 	btDiscreteDynamicsWorld* dynamicsWorld;
 	btCollisionShape* groundShape;
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
+	std::vector<OgreHeadStruct> ogreHeads;
 
 	CEGUI::Window *healthWindow;
 	CEGUI::Window *scoreWindow;
 	CEGUI::Window *enemiesWindow;
 
 	CEGUI::Window *waveWindow;
-
+	//struct OgreHeadStruct;
 	struct ogreObject 
 	{
+		
 		Ogre::Entity * entityObject;
 		Ogre::SceneNode * sceneNodeObject;
 		MyMotionState * myMotionStateObject;
@@ -111,19 +124,25 @@ private:
 	    btCollisionObject * btCollisionObjectObject;
 		std::string objectType;
 	    Ogre::Real timer = 0;
-	    bool canDelete = false;
+	    bool objectDelete = false;
 	    OgreHeadStruct headStruct;
 		int health = 1;
-
+		std::vector<ogreObject *> objectCollisions;
 };
+
+	
 	ogreObject* getOgreObject(const btCollisionObject * obj);
+	ogreObject* ptrToNinja;
+
 	ogreObject * ptrToOgreObject; // pointer to an ogre Object struct
 	std::vector<ogreObject *> ptrToOgreObjects; // vector of pointers to actual ogreObject structs
 	ogreObject* ninjaObject;
-	void checkCollisions();
+	void RemoveObject(ogreObject* object, int index);
+	void CheckCollisions();
 	void checkDeletions();
 	void removeDynamicOgreObject(ogreObject * ptrToOgreObject, std::vector<ogreObject *> &ptrToOgreObjects);
 	void eraseObject(ogreObject * object);
 	       
+
 };
 #endif
