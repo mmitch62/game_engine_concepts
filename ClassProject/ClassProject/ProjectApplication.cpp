@@ -163,7 +163,8 @@ void ProjectApplication::createScene(void)
 		        pos.y = Position.getY();
 		        pos.z = Position.getZ();
 				
-				
+		
+		//Checking to see if there is an inactive somewhere
 		for (std::vector<OgreHeadStruct>::iterator iterator = ogreHeads.begin(); iterator != ogreHeads.end(); ++iterator)
 			{
 				if (!iterator->isActive)
@@ -176,6 +177,7 @@ void ProjectApplication::createScene(void)
 				}
 			}
 
+		//if there is an inactive ogre, place it where you are spawning a "new" ogre
 		if (!availableOgre)
 		{
 			ptrToOgreObject = new ogreObject;
@@ -209,15 +211,13 @@ void ProjectApplication::createScene(void)
 			ptrToOgreObject->btRigidBodyObject->setLinearFactor(btVector3(1, 1, 1));
 
 
-			ptrToOgreObject->objectType = "Ogre";
+			//ptrToOgreObject->objectType = "Ogre";
 
-			ptrToOgreObject->btRigidBodyObject->setActivationState(DISABLE_DEACTIVATION);
+			//ptrToOgreObject->btRigidBodyObject->setActivationState(DISABLE_DEACTIVATION);
 
-			// Add it to the physics world
-			dynamicsWorld->addRigidBody(ptrToOgreObject->btRigidBodyObject);
-			collisionShapes.push_back(ptrToOgreObject->btCollisionShapeObject);
-
-			//add ogreHead to the list
+			//// Add it to the physics world
+			//dynamicsWorld->addRigidBody(ptrToOgreObject->btRigidBodyObject);
+			//collisionShapes.push_back(ptrToOgreObject->btCollisionShapeObject);
 
 			OgreHeadStruct newHead = OgreHeadStruct(ptrToOgreObject->sceneNodeObject, ptrToOgreObject->entityObject, ptrToOgreObject->btRigidBodyObject);
 			newHead.destination = ninjaPoint;
@@ -233,9 +233,10 @@ void ProjectApplication::createScene(void)
 }
 	void ProjectApplication::NewWave()
 	{
+		
 		if (newWaveAvailable)
 		{
-			++maxOgres;
+			++maxOgres; //increase ogre limit
 			spawning = true;
 			roundOgreCount = 0;
 			++waveNum;
@@ -243,7 +244,7 @@ void ProjectApplication::createScene(void)
 			newWaveAvailable = false;
 		}
 	}
-	void ProjectApplication::Die()
+	void ProjectApplication::Die() //Player dying
 	{
 		gameOver == true;
 		playing = false;
@@ -257,6 +258,7 @@ void ProjectApplication::createScene(void)
 
 	void ProjectApplication::NewGame()
 	{
+		//spawn the first two ogres by moving the first two in the vector and activating them if need be
 		for (std::vector<OgreHeadStruct>::iterator iterator = ogreHeads.begin(); iterator != ogreHeads.end(); ++iterator)
 		{
 			if (iterator == ogreHeads.begin() || iterator == ogreHeads.begin() + 1)
@@ -265,6 +267,7 @@ void ProjectApplication::createScene(void)
 			
 			}
 
+			//Any remaining ones will be mooved far off screen and deactivated
 			if (iterator != ogreHeads.begin() || iterator != ogreHeads.begin() + 1)
 			{
 				iterator->ogreNode->setPosition(Ogre::Vector3(-65000, 200, -650));
@@ -275,7 +278,7 @@ void ProjectApplication::createScene(void)
 		}
 		//NewWave();
 
-		
+		//reset variables
 		score = 0;
 		numOgres = 0;
 		roundOgreCount = 0;
@@ -290,7 +293,7 @@ void ProjectApplication::createScene(void)
 
 
 
-
+		//reset ninja position
 		ptrToNinja->sceneNodeObject->setPosition(Ogre::Vector3(0, 0, 0));
 	}
 //--------------------------------------------------------------------------
@@ -304,25 +307,24 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		mPlayerAnimation->setEnabled(true);
 		Die();
 	}
-
+	
+	
+	//exit game on escape
 	if (mKeyboard->isKeyDown(OIS::KC_ESCAPE)) {
 		mShutDown = true;
 	}
 	
+	//Start game
 	if (mKeyboard->isKeyDown(OIS::KC_RETURN) && !playing && !gameOver) {
 		playing = true;
 		startQuit->setVisible(false);
 	}
 
+	//Restart game
 	if (mKeyboard->isKeyDown(OIS::KC_N)) {
 		playing = true;
-		
-
-
 		dead = false;
-		NewGame();
-		
-		
+		NewGame();	
 
 		startQuit->setVisible(false);
 	}
@@ -348,13 +350,16 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 	if (!playing) return true;
 	mTrayMgr->frameRenderingQueued(fe);
 
-	
+		//incrementing timers
 		timer += fe.timeSinceLastFrame;
 		damageCooldownTimerNinja += fe.timeSinceLastFrame;
+
+		//Points to track ninja
 		Ogre::Vector3 tempPoint = Ogre::Vector3(ptrToNinja->entityObject->getWorldBoundingBox().getCenter().x, 0, ptrToNinja->entityObject->getWorldBoundingBox().getCenter().z);
 		Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 50, tempPoint.z);
 
-		if (!dead)
+
+		if (!dead) //Only animate player while alive
 		{
 
 			if (isPlayerMoving)
@@ -387,12 +392,12 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		}
 
 		//Start a new Wave if all ogres are killed
-		if (numOgres <= 0)
+		if (numOgres <= 0) 
 		{
 			NewWave();
 		}
 
-		if (attackTimer >= attackTime)
+		if (attackTimer >= attackTime) //Prevents player frome attacking all of the time
 		{
 			attacking = false;
 			attackTimer += fe.timeSinceLastFrame;
@@ -407,7 +412,9 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		if (timer >= respawnTime && numOgres < maxOgres && roundOgreCount < maxOgres)
 		{
 
-			++roundOgreCount;
+			++roundOgreCount; //Round persistent counter of ogres. So the ogres aren't spawned infinitely
+
+			//Randomly choose a psition for an ogre to be spawned
 			int corner = rand() % 4 + 1;
 			switch (corner)
 			{
@@ -434,7 +441,7 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 
 		for (std::vector<OgreHeadStruct>::iterator iterator = ogreHeads.begin(); iterator != ogreHeads.end(); ++iterator)
 		{
-
+			//Moving active ogres towards ninja
 			Ogre::Real move = ogreMove * fe.timeSinceLastFrame;
 			Ogre::SceneNode* currentNode = iterator->ogreNode;
 			iterator->destination = ninjaPoint;
@@ -442,8 +449,9 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 			iterator->distance = iterator->direction.normalise();
 			iterator->ogreNode->lookAt(ninjaPoint, Ogre::Node::TS_WORLD, Ogre::Vector3::UNIT_Z);
 
-			if (iterator->isActive)
+			if (iterator->isActive)//Ony move if active
 			{
+				
 				iterator->ogreNode->translate(ogreMove * iterator->direction);
 			}
 			//adjust the ogre head's rigidbody every frame as well
@@ -463,12 +471,13 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 
 			if (ptrToNinja->entityObject->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (attacking))
 			{
-				iterator->ogreNode->setPosition(Ogre::Vector3(10000, 0, 0));
+				iterator->ogreNode->setPosition(Ogre::Vector3(10000, 0, 0));//"Deleting" ogre. Moving off screen.
 				iterator->isActive = false;
 				++score;
 				--numOgres;
-				if (numOgres == 0)
+				if (numOgres == 0)//Only check if there are 0 ogres when one is being killed. This prevents multiple waves beig incremented at a time
 				{
+
 					newWaveAvailable = true;
 				}
 			}
