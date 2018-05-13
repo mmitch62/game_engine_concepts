@@ -102,6 +102,18 @@ void ProjectApplication::createScene(void)
 	waveWindow->setPosition(CEGUI::UVector2(CEGUI::UDim(0.35f, 0.0f), CEGUI::UDim(0.05f, 0.0f)));
 	waveWindow->setSize(CEGUI::USize(CEGUI::UDim(0.1f, 0.0f), CEGUI::UDim(0.1f, 0.0f)));
 
+	// Game Over / Start Screen
+	startQuit = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "overVal");
+	startQuit->setProperty("HorzFormatting", "WordWrapCenterAligned");
+	sheet->addChild(startQuit);
+	startQuit->setPosition(CEGUI::UVector2(CEGUI::UDim(0.1f, 0.0f), CEGUI::UDim(0.4f, 0.0f)));
+	startQuit->setSize(CEGUI::USize(CEGUI::UDim(0.25f, 0.0f), CEGUI::UDim(0.25f, 0.0f)));
+	startQuit->setText("Welcome\n\n\
+		Use WASD to move up, left, down, and right.\n\
+		Press Space to attack.\n\
+		\nPlay: (Enter)\nQuit Game: (Esc)");
+	startQuit->show();
+
 	createBulletSim();
 
 	loadNinjaAndCamera(btVector3(0, 0, 0), "NinjaEntity");
@@ -231,22 +243,97 @@ void ProjectApplication::createScene(void)
 			newWaveAvailable = false;
 		}
 	}
+	void ProjectApplication::Die()
+	{
+		gameOver == true;
+		playing = false;
+
+		startQuit->setText("GAME OVER\n\nFinal Score " + std::to_string(score) + "\n\nPress esc to quit \nPress N to start a new game.");
+
+		startQuit->show();
+
+		
+	}
+
+	void ProjectApplication::NewGame()
+	{
+		for (std::vector<OgreHeadStruct>::iterator iterator = ogreHeads.begin(); iterator != ogreHeads.end(); ++iterator)
+		{
+			if (iterator == ogreHeads.begin() || iterator == ogreHeads.begin() + 1)
+			{
+				iterator->ogreNode->setPosition(Ogre::Vector3(-650, 200, -650));
+			
+			}
+
+			if (iterator != ogreHeads.begin() || iterator != ogreHeads.begin() + 1)
+			{
+				iterator->ogreNode->setPosition(Ogre::Vector3(-65000, 200, -650));
+				iterator->isActive = false;
+
+			}
+
+		}
+		//NewWave();
+
+		
+		score = 0;
+		numOgres = 0;
+		roundOgreCount = 0;
+		maxOgres = 1;
+		ninjaHealth = 10;
+		waveNum = 1;
+		
+		gameOver = false;
+		
+
+
+
+
+
+
+		ptrToNinja->sceneNodeObject->setPosition(Ogre::Vector3(0, 0, 0));
+	}
 //--------------------------------------------------------------------------
 bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 {
-	if (numOgres == 0)
+	if (ninjaHealth <= 0 && !dead)
 	{
-		NewWave();
+		dead = true;
+		mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Death1");
+		mPlayerAnimation->setLoop(false);
+		mPlayerAnimation->setEnabled(true);
+		Die();
 	}
+
+	if (mKeyboard->isKeyDown(OIS::KC_ESCAPE)) {
+		mShutDown = true;
+	}
+	
+	if (mKeyboard->isKeyDown(OIS::KC_RETURN) && !playing && !gameOver) {
+		playing = true;
+		startQuit->setVisible(false);
+	}
+
+	if (mKeyboard->isKeyDown(OIS::KC_N)) {
+		playing = true;
+		
+
+
+		dead = false;
+		NewGame();
+		
+		
+
+		startQuit->setVisible(false);
+	}
+
+
+	
 
 	bool ret = BaseApplication::frameRenderingQueued(fe);
 	//Increment timer 
 	
-	timer += fe.timeSinceLastFrame;
-	damageCooldownTimerNinja += fe.timeSinceLastFrame;
-	Ogre::Vector3 tempPoint = Ogre::Vector3(ptrToNinja->entityObject->getWorldBoundingBox().getCenter().x,0, ptrToNinja->entityObject->getWorldBoundingBox().getCenter().z);
-	Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 50, tempPoint.z);
-
+	
 	if (!processUnbufferedInput(fe))
 		return false;
 
@@ -257,76 +344,92 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 		return false;
 
 	mKeyboard->capture();
-	mMouse->capture();
-
+	//mMouse->capture();
+	if (!playing) return true;
 	mTrayMgr->frameRenderingQueued(fe);
 
-	if (isPlayerMoving)
-	{
-		mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Walk");
-		mPlayerAnimation->setLoop(true);
-		mPlayerAnimation->setEnabled(true);
-	}
-	else {
-		mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Idle3");
-		mPlayerAnimation->setLoop(true);
-		mPlayerAnimation->setEnabled(true);
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_SPACE) && !attacking && attackTimer == 0)
-	{
-		attacking = true;
-	}
-
-	if (attacking)
-	{
-		attackTimer += fe.timeSinceLastFrame;
-		mPlayerAnimation->setLoop(false);
-		mPlayerAnimation->setEnabled(false);
-		mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Attack1");
-		mPlayerAnimation->setLoop(false);
-		mPlayerAnimation->setEnabled(true);
-
-	}
 	
-	if (attackTimer >= attackTime)
-	{
-		attacking = false;
-		attackTimer += fe.timeSinceLastFrame;
-		if (attackTimer >= cooldownTime)
+		timer += fe.timeSinceLastFrame;
+		damageCooldownTimerNinja += fe.timeSinceLastFrame;
+		Ogre::Vector3 tempPoint = Ogre::Vector3(ptrToNinja->entityObject->getWorldBoundingBox().getCenter().x, 0, ptrToNinja->entityObject->getWorldBoundingBox().getCenter().z);
+		Ogre::Vector3 ninjaPoint = Ogre::Vector3(tempPoint.x, tempPoint.y + 50, tempPoint.z);
+
+		if (!dead)
 		{
-			attackTimer = 0;
+
+			if (isPlayerMoving)
+			{
+				mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Walk");
+				mPlayerAnimation->setLoop(true);
+				mPlayerAnimation->setEnabled(true);
+			}
+			else {
+				mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Idle3");
+				mPlayerAnimation->setLoop(true);
+				mPlayerAnimation->setEnabled(true);
+			}
+
+			if (mKeyboard->isKeyDown(OIS::KC_SPACE) && !attacking && attackTimer == 0)
+			{
+				attacking = true;
+			}
+
+			if (attacking)
+			{
+				attackTimer += fe.timeSinceLastFrame;
+				mPlayerAnimation->setLoop(false);
+				mPlayerAnimation->setEnabled(false);
+				mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Attack1");
+				mPlayerAnimation->setLoop(false);
+				mPlayerAnimation->setEnabled(true);
+
+			}
 		}
 
-	}
-
-	mPlayerAnimation->addTime(fe.timeSinceLastFrame);
-	if (timer >= respawnTime && numOgres < maxOgres && roundOgreCount < maxOgres) 
-	{
-		
-		++roundOgreCount;
-		int corner = rand() % 4 + 1;
-		switch (corner) 
+		//Start a new Wave if all ogres are killed
+		if (numOgres <= 0)
 		{
-			
-		case 1:
-			CreateOgre(btVector3(-650, 200, -650)); //should start in top left corner		
-			break;
+			NewWave();
+		}
 
-		case 2:
-			CreateOgre(btVector3(650, 200, -650)); //should start in top right corner		
-			break;
-
-		case 3:
-			CreateOgre(btVector3(-650, 200, 650)); //should start in bottom left corner		
-			break;
-		case 4:
-			CreateOgre(btVector3(650, 200, 650)); //should start in bottom right corner		
-			break;
+		if (attackTimer >= attackTime)
+		{
+			attacking = false;
+			attackTimer += fe.timeSinceLastFrame;
+			if (attackTimer >= cooldownTime)
+			{
+				attackTimer = 0;
+			}
 
 		}
-		timer = 0; //reset timer to zero	
-	}
+
+		mPlayerAnimation->addTime(fe.timeSinceLastFrame);
+		if (timer >= respawnTime && numOgres < maxOgres && roundOgreCount < maxOgres)
+		{
+
+			++roundOgreCount;
+			int corner = rand() % 4 + 1;
+			switch (corner)
+			{
+
+			case 1:
+				CreateOgre(btVector3(-650, 200, -650)); //should start in top left corner		
+				break;
+
+			case 2:
+				CreateOgre(btVector3(650, 200, -650)); //should start in top right corner		
+				break;
+
+			case 3:
+				CreateOgre(btVector3(-650, 200, 650)); //should start in bottom left corner		
+				break;
+			case 4:
+				CreateOgre(btVector3(650, 200, 650)); //should start in bottom right corner		
+				break;
+
+			}
+			timer = 0; //reset timer to zero	
+		}
 
 
 		for (std::vector<OgreHeadStruct>::iterator iterator = ogreHeads.begin(); iterator != ogreHeads.end(); ++iterator)
@@ -338,7 +441,7 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 			iterator->direction = iterator->destination - iterator->ogreNode->getPosition();
 			iterator->distance = iterator->direction.normalise();
 			iterator->ogreNode->lookAt(ninjaPoint, Ogre::Node::TS_WORLD, Ogre::Vector3::UNIT_Z);
-			
+
 			if (iterator->isActive)
 			{
 				iterator->ogreNode->translate(ogreMove * iterator->direction);
@@ -351,38 +454,37 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 			btVector3 rigidLoc = btVector3(locationNode->getPosition().x, 200, locationNode->getPosition().z);
 			rigidTrans.setOrigin(rigidLoc);
 			iterator->ogreBody->setWorldTransform(rigidTrans);
-			if (ptrToNinja->entityObject->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (!attacking)) {
+			//If an ogre and player collide while the player isn't attacking
+			if (ptrToNinja->entityObject->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (!attacking))
+			{
 				TakeDamage();
-				
-
-				//if(!deleting)
-
 			}
+			//If an ogre and player collide while the player i attacking
 
-			if (ptrToNinja->entityObject->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (attacking)) {
+			if (ptrToNinja->entityObject->getWorldBoundingBox().intersects(iterator->ogreEntity->getWorldBoundingBox()) && (attacking))
+			{
 				iterator->ogreNode->setPosition(Ogre::Vector3(10000, 0, 0));
 				iterator->isActive = false;
 				++score;
-					--numOgres;
-					if (numOgres == 1)
-					{
-						newWaveAvailable = true;
-					}
-
-				
+				--numOgres;
+				if (numOgres == 0)
+				{
+					newWaveAvailable = true;
+				}
 			}
 
 		}
-	
-	if (mPlayerAnimation->hasEnded()) {
-		mPlayerAnimation->setTimePosition(0);
-		mPlayerAnimation->setLoop(false);
-		mPlayerAnimation->setEnabled(false);
-		mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Idle1");
-		mPlayerAnimation->setLoop(true);
-	//	mPlayerAnimation->setEnabled(true);
-	}
-	
+		if (!dead)
+		{
+			if (mPlayerAnimation->hasEnded()) {
+				mPlayerAnimation->setTimePosition(0);
+				mPlayerAnimation->setLoop(false);
+				mPlayerAnimation->setEnabled(false);
+				mPlayerAnimation = ptrToNinja->entityObject->getAnimationState("Idle1");
+				mPlayerAnimation->setLoop(true);
+				//	mPlayerAnimation->setEnabled(true);
+			}
+		}
 	
 	//update the healthWindow if the Ninja's health changes
 	healthWindow->setText("Health: " + std::to_string(ninjaHealth));
@@ -393,22 +495,10 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 	return ret;
 	}	
 
-	bool ProjectApplication::isNinja(std::string name) {
-	return name == "Ninja";
-		
-	}
-	
-	bool ProjectApplication::isOgre(std::string name) {
-		 return name == "Ogre";
-		
-	}
-
-
 	void ProjectApplication::TakeDamage()
 	{
 		if (damageCooldownTimerNinja >= damageCooldownTime)
 		{
-
 			--ninjaHealth;
 			damageCooldownTimerNinja = 0;
 		}
@@ -418,134 +508,104 @@ bool ProjectApplication::frameRenderingQueued(const Ogre::FrameEvent& fe)
 //--------------------------------------------------------------------------
 bool ProjectApplication::processUnbufferedInput(const Ogre::FrameEvent& fe)
 {
-	isPlayerMoving = false;
-	//Adding move functionality to player
-	Ogre::Vector3 dirVec = Ogre::Vector3::ZERO;
-
-	if (mKeyboard->isKeyDown(OIS::KC_W))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(0), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_S))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(180), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_A))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(90), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_D))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(270), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_W) && mKeyboard->isKeyDown(OIS::KC_A))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(45), Ogre::Vector3::UNIT_Y));
-		dirVec.z += .5*mPlayerSpd;
-		dirVec.x += .5*mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_W) && mKeyboard->isKeyDown(OIS::KC_D))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(315), Ogre::Vector3::UNIT_Y));
-		dirVec.z += .5*mPlayerSpd;
-		dirVec.x -= .5*mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_S) && mKeyboard->isKeyDown(OIS::KC_A))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(135), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= .5*mPlayerSpd;
-		dirVec.x += .5*mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	if (mKeyboard->isKeyDown(OIS::KC_S) && mKeyboard->isKeyDown(OIS::KC_D))
-	{
-		mSceneMgr->getSceneNode("MoveNode")->setOrientation(
-			Ogre::Quaternion(Ogre::Degree(225), Ogre::Vector3::UNIT_Y));
-		dirVec.z -= .5*mPlayerSpd;
-		dirVec.x -= .5*mPlayerSpd;
-
-		isPlayerMoving = true;
-	}
-
-	mSceneMgr->getSceneNode("MoveNode")->translate(
-		dirVec * fe.timeSinceLastFrame, Ogre::Node::TS_LOCAL);
-
-
-	//to update the ninja's rigidbody's location to align with the ninja
-	Ogre::SceneNode* locationNode = mSceneMgr->getSceneNode("MoveNode");
-	btTransform rigidTrans;
-	ptrToNinja->btRigidBodyObject->getMotionState()->getWorldTransform(rigidTrans);
-	//you basically reset the transform's position every frame for it to follow
-	btVector3 rigidLoc = btVector3(locationNode->getPosition().x, locationNode->getPosition().y, locationNode->getPosition().z);
-	rigidTrans.setOrigin(rigidLoc);
-	ptrToNinja->btRigidBodyObject->setWorldTransform(rigidTrans);
+	if (!playing) return true;
 	
-	//retrieves the ninja so it can be animates
-	//Ogre::Entity *ninja = static_cast<Ogre::Entity*>(mSceneMgr->getSceneNode("MoveNode")->getAttachedObject("NinjaEntity"));
+		isPlayerMoving = false;
+		//Adding move functionality to player
+		Ogre::Vector3 dirVec = Ogre::Vector3::ZERO;
+
+		if (mKeyboard->isKeyDown(OIS::KC_W))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(0), Ogre::Vector3::UNIT_Y));
+			dirVec.z -= mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_S))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(180), Ogre::Vector3::UNIT_Y));
+			dirVec.z -= mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_A))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(90), Ogre::Vector3::UNIT_Y));
+			dirVec.z -= mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_D))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(270), Ogre::Vector3::UNIT_Y));
+			dirVec.z -= mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_W) && mKeyboard->isKeyDown(OIS::KC_A))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(45), Ogre::Vector3::UNIT_Y));
+			//	dirVec.z += .25*mPlayerSpd;
+			dirVec.x += .25*mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_W) && mKeyboard->isKeyDown(OIS::KC_D))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(315), Ogre::Vector3::UNIT_Y));
+			//dirVec.z += .25*mPlayerSpd;
+			dirVec.x -= .25*mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_S) && mKeyboard->isKeyDown(OIS::KC_A))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(135), Ogre::Vector3::UNIT_Y));
+			//dirVec.z -= .01*mPlayerSpd;
+			dirVec.x += .01*mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		if (mKeyboard->isKeyDown(OIS::KC_S) && mKeyboard->isKeyDown(OIS::KC_D))
+		{
+			mSceneMgr->getSceneNode("MoveNode")->setOrientation(
+				Ogre::Quaternion(Ogre::Degree(225), Ogre::Vector3::UNIT_Y));
+			//.z -= .01*mPlayerSpd;
+			dirVec.x -= .01*mPlayerSpd;
+
+			isPlayerMoving = true;
+		}
+
+		mSceneMgr->getSceneNode("MoveNode")->translate(
+			dirVec * fe.timeSinceLastFrame, Ogre::Node::TS_LOCAL);
+
+
+		//to update the ninja's rigidbody's location to align with the ninja
+		Ogre::SceneNode* locationNode = mSceneMgr->getSceneNode("MoveNode");
+		btTransform rigidTrans;
+		ptrToNinja->btRigidBodyObject->getMotionState()->getWorldTransform(rigidTrans);
+		//you basically reset the transform's position every frame for it to follow
+		btVector3 rigidLoc = btVector3(locationNode->getPosition().x, locationNode->getPosition().y, locationNode->getPosition().z);
+		rigidTrans.setOrigin(rigidLoc);
+		ptrToNinja->btRigidBodyObject->setWorldTransform(rigidTrans);
+
 	
-	//animates the ninja depending on whether it's moving or if it's idle
-
-
 	return true;
 }
-
-
-
-	// Game over
-	//if (playing == false) {
-
-	//	// Record high score
-	//	if (gameTimer > highScore)
-	//		highScore = gameTimer;
-
-	//	// Update windows
-	//	bestTime->setText("Best Time : " + std::to_string(highScore));
-	//	startQuit->setText("Your Final " + currentTime->getText() + "\nBest Time : "
-	//		+ std::to_string(highScore) + "\n\nPlay: (Enter)\nQuit Game: (Esc)");
-	//	startQuit->show();
-
-	//	// Reset game timers
-	//	gameTimer = 0;
-	//	collisionTimer = 0;
-
-	//	// Put player back into orginal position
-	//	btTransform Transform;
-	//	Transform.setIdentity();
-	//	Transform.setOrigin(btVector3(0, 120, 0));
-	//	player->body->setWorldTransform(Transform);
-	//}
-
 
 void ProjectApplication::loadNinjaAndCamera(const btVector3 &Position, std::string name) {
 	//first set up the moveNode so the NinjaNode can be attached to it
@@ -595,13 +655,8 @@ void ProjectApplication::loadNinjaAndCamera(const btVector3 &Position, std::stri
 	ptrToOgreObject->objectDelete = false;
 	ptrToOgreObjects.push_back(ptrToOgreObject);
 
-	
-	//ptrToNinja->sceneNodeObject->attachObject(ptrToNinja->entityObject);
-	////the scale will always be the same
-	//ptrToNinja->sceneNodeObject->scale(1, 1, 1);
-	//
+
 	////the zeros in these two are so then wthe ninja has no mass and is easy to control
-	//ptrToNinja->btRigidBodyObject->setActivationState(DISABLE_DEACTIVATION);
 	// Add it to the physics world
 	dynamicsWorld->addRigidBody(ptrToOgreObject->btRigidBodyObject);
 	collisionShapes.push_back(ptrToOgreObject->btCollisionShapeObject);
@@ -640,203 +695,15 @@ void ProjectApplication::loadNinjaAndCamera(const btVector3 &Position, std::stri
 
 }
 bool ProjectApplication::frameStarted(const Ogre::FrameEvent &evt)
-{
-	
+{	
 	mKeyboard->capture();
-	mMouse->capture();
 	dynamicsWorld->stepSimulation(evt.timeSinceLastFrame);
-	CheckCollisions();
+
 	return true;
 }
-
-bool ProjectApplication::frameEnded(const Ogre::FrameEvent &evt) {
-	Ogre::LogManager::getSingleton().logMessage("blahblah"); 
-	for (int i = 0; i < ptrToOgreObjects.size(); i++) {
-		
-		ogreObject* currentObject = ptrToOgreObjects[i];
-		if (isNinja(currentObject->objectType)) {
-			
-			std::vector<ogreObject*> collidedObjects = currentObject->objectCollisions;
-
-			for (int j = 0; j < collidedObjects.size(); j++) {
-				std::cout << "delet\n";
-				collidedObjects[j]->objectDelete = true;
-			}
-		}
-
-		if (currentObject->objectDelete) {
-			++score;
-			//bool isSpecial = currentObject->isSpecial;
-			RemoveObject(currentObject, i);
-
-			
-		}
-	}
-	return true;
-}
-
-void ProjectApplication::RemoveObject(ogreObject* object, int index) {
-	object->entityObject->detachFromParent();
-	mSceneMgr->destroyEntity(object->entityObject);
-	object->entityObject = NULL;
-	mSceneMgr->destroySceneNode(object->sceneNodeObject);
-	object->sceneNodeObject = NULL;
-
-	dynamicsWorld->removeRigidBody(object->btRigidBodyObject);
-	if (object->btRigidBodyObject && object->btRigidBodyObject->getMotionState())
-		delete object->btRigidBodyObject->getMotionState();
-	object->myMotionStateObject = NULL;
-	dynamicsWorld->removeCollisionObject(object->btCollisionObjectObject);
-	delete object->btCollisionObjectObject;
-	object->btCollisionObjectObject = NULL;
-	object->btRigidBodyObject = NULL;
-	delete object->btCollisionShapeObject;
-	object->btCollisionShapeObject = NULL;
-
-	ptrToOgreObjects.erase(ptrToOgreObjects.begin() + index);
-}
-
-void ProjectApplication::CheckCollisions() {
-	//dynamicsworld->stepsimulation called in frameStarted function
-	int numManifolds = dynamicsWorld->getDispatcher()->getNumManifolds();
-	for (int i = 0; i < numManifolds; i++) {
-
-		btPersistentManifold* contactManifold = dynamicsWorld->getDispatcher()->getManifoldByIndexInternal(i);
-
-		const btCollisionObject* obA = contactManifold->getBody0();
-		const btCollisionObject* obB = contactManifold->getBody1();
-
-		ogreObject* ogreA = (ogreObject*)obA->getUserPointer();
-		ogreObject* ogreB = (ogreObject*)obB->getUserPointer();
-
-		int numContacts = contactManifold->getNumContacts();
-		for (int j = 0; j < numContacts; j++) {
-			btManifoldPoint& pt = contactManifold->getContactPoint(j);
-			if (pt.getDistance() < 0.f) {
-				if (ogreA == NULL || ogreB == NULL) {
-					++score;
-					continue;
-				}
-
-				if (isNinja(ogreA->objectType) && isOgre(ogreB->objectType)) {
-					if (!ogreB->objectDelete) {
-						++score;
-
-						ogreA->objectCollisions.push_back(ogreB);
-					}
-				}
-
-				if (isNinja(ogreB->objectType) && isOgre(ogreA->objectType)) {
-					if (!ogreA->objectDelete) {
-						++score;
-
-						ogreB->objectCollisions.push_back(ogreA);
-					}
-				}
-			}
-		}
-	}
-}
-
-ProjectApplication::ogreObject* ProjectApplication::getOgreObject(const btCollisionObject * obj) {
-	for (int i = 0; i < ptrToOgreObjects.size(); ++i) {
-		if (ptrToOgreObjects[i]->btCollisionObjectObject == obj)
-			return ptrToOgreObjects[i];
-
-	}
-	ogreObject* ret = new ogreObject;
-	return ret;
-}
-
-
-
-
-
-
-void ProjectApplication::eraseObject(ogreObject* object) {
-	if (object->sceneNodeObject != NULL) {
-		// delete the ogre aspect of the object
-		// detach the entity from the parent sceneNode, destroy the entity, destroy the sceneNode, and set the sceneNode to NULL
-		object->sceneNodeObject->detachObject(object->entityObject);
-		mSceneMgr->destroyEntity(object->entityObject);
-		mSceneMgr->destroySceneNode(object->sceneNodeObject);
-		object->sceneNodeObject = NULL;
-
-		// delete the bullet aspect of the object, ours should always have motion state
-		if (object->btRigidBodyObject && object->btRigidBodyObject->getMotionState())
-			delete object->btRigidBodyObject->getMotionState();
-
-		delete object->btRigidBodyObject->getCollisionShape();
-
-		dynamicsWorld->removeCollisionObject(object->btRigidBodyObject);
-
-		object->btRigidBodyObject = NULL;
-
-		for (int i = 0; i < ogreHeads.size(); ++i) {
-			if (object->headStruct.ogreNode == ogreHeads[i].ogreNode)
-				ogreHeads.erase(ogreHeads.begin() + i);
-		}
-
-		removeDynamicOgreObject(object, ptrToOgreObjects);
-	}
-}
-
-void ProjectApplication::removeDynamicOgreObject(ogreObject * ptrToOgreObject, std::vector<ogreObject *> &ptrToOgreObjects)
-{
-	// only iterate through the vector if it is not empty, it should NOT be empty
-	if (!ptrToOgreObjects.empty())
-		// an iterator returned from an erase is a valid iterator to the next element in the vector
-		for (std::vector<ogreObject *>::iterator itr = ptrToOgreObjects.begin(); itr != ptrToOgreObjects.end(); ++itr) {
-			// find the match, it must be in the vector because the object exists
-			if (*itr == ptrToOgreObject) {
-				// delete that dynamic ogreObject
-				delete *itr;
-				// set the pointer to that ogreObject to NUll
-				*itr = NULL;
-				// and then delete that pointer out of the vector
-				ptrToOgreObjects.erase(itr);
-				// no need to continue iterating and the iterator just became invalid
-				break;
-			}
-		}
-}
-
-void ProjectApplication::checkDeletions() {
-	/*for (int i = 0; i < ptrToOgreObjects.size(); i++) {
-		if (ptrToOgreObjects[i]->canDelete == true)
-			eraseObject(ptrToOgreObjects[i]);
-		
-	}*/
-}
-
 
 bool ProjectApplication::keyPressed(const OIS::KeyEvent& ke)
 {
-	switch (ke.key)
-	{
-	case OIS::KC_UP:
-	case OIS::KC_W:
-		
-		break;
-
-	case OIS::KC_DOWN:
-	case OIS::KC_S:
-		
-		break;
-
-	case OIS::KC_LEFT:
-	case OIS::KC_A:
-		
-		break;
-
-	case OIS::KC_H:
-
-		break;
-		break;
-
-	default:
-		break;
-	}
 	return true;
 }
 
@@ -867,34 +734,15 @@ void ProjectApplication::createFrameListener()
 	
 	//Register as a Window listener
 	Ogre::WindowEventUtilities::addWindowEventListener(mWindow, this);
-	
-	//this is to adjust the mouse state so it lines up with the Ogre mouse
-	//this MUST be included or else mouse cursor on CEGUI won't line up with Ogre's
-	//Ogre's starts at (0,0) as in the top left corner, CEGUI starts (0.5, 0.5) as in the center of the screen
-	OIS::MouseState &mutableMouseState = const_cast<OIS::MouseState &>(mMouse->getMouseState());
-	mutableMouseState.X.abs = mCamera->getViewport()->getActualWidth() / 2;
-	mutableMouseState.Y.abs = mCamera->getViewport()->getActualHeight() / 2;
-	
+
 	mRoot->addFrameListener(this);
 	
 	}
 
 
-
-
-
-
-
 bool ProjectApplication::keyReleased(const OIS::KeyEvent& ke)
 {
 	return true;
-}
-
-	//function that activates when button pressed
-	bool ProjectApplication::quitGame(const CEGUI::EventArgs &e) {
-		        mShutDown = true;
-		        return true;
-	
 }
 
 

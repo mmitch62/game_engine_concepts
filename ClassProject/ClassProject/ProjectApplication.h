@@ -42,8 +42,6 @@ protected:
 			
 };
 
-
-
 class ProjectApplication : public BaseApplication
 {
 public:
@@ -53,27 +51,29 @@ public:
 protected:
 	void loadNinjaAndCamera(const btVector3 &Position, std::string name);
 	void NewWave();
+	void NewGame();
+	void Die();
 	void TakeDamage();
 	virtual void createScene(void);
 	virtual void createFrameListener();
-	virtual bool frameEnded(const Ogre::FrameEvent &evt);
+	//virtual bool frameEnded(const Ogre::FrameEvent &evt);
 	virtual bool frameRenderingQueued(const Ogre::FrameEvent& fe);
 	virtual bool keyPressed(const OIS::KeyEvent& ke);
 	virtual bool keyReleased(const OIS::KeyEvent& ke);
 	void CreateOgre(const btVector3 &Position);
 	bool frameStarted(const Ogre::FrameEvent &evt);
 	CEGUI::OgreRenderer* mRenderer;
-	bool quitGame(const CEGUI::EventArgs &e);
 private:
 	void createBulletSim(void);
 	bool processUnbufferedInput(const Ogre::FrameEvent& fe);
 	bool isPlayerMoving;
 	bool attacking;
 	bool spawning;
+	bool gameOver;
 	bool isTakingDamage;
 	bool newWaveAvailable;
-	bool isNinja(std::string name);
-	bool isOgre(std::string name);
+	bool playing;
+	bool dead;
 	double timer,attackTimer,attackTime,cooldownTime, damageCooldownTime, damageCooldownTimerNinja, respawnTime;
 	int numOgres; int maxOgres;
 	int roundOgreCount;
@@ -112,6 +112,8 @@ private:
 	CEGUI::Window *enemiesWindow;
 
 	CEGUI::Window *waveWindow;
+	CEGUI::Window* startQuit;
+
 	//struct OgreHeadStruct;
 	struct ogreObject 
 	{
@@ -130,19 +132,12 @@ private:
 		std::vector<ogreObject *> objectCollisions;
 };
 
-	
-	ogreObject* getOgreObject(const btCollisionObject * obj);
 	ogreObject* ptrToNinja;
 
 	ogreObject * ptrToOgreObject; // pointer to an ogre Object struct
 	std::vector<ogreObject *> ptrToOgreObjects; // vector of pointers to actual ogreObject structs
 	ogreObject* ninjaObject;
-	void RemoveObject(ogreObject* object, int index);
-	void CheckCollisions();
-	void checkDeletions();
-	void removeDynamicOgreObject(ogreObject * ptrToOgreObject, std::vector<ogreObject *> &ptrToOgreObjects);
-	void eraseObject(ogreObject * object);
-	       
+	
 
 };
 #endif
